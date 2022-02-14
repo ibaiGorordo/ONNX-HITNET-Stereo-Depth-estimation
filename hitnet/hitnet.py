@@ -89,8 +89,8 @@ class HitNet():
 			return np.squeeze(left_disparity)
 
 		right_output_name = self.session.get_outputs()[1].name
-		output = self.session.run([left_output_name, right_output_name], {input_name: input_tensor})
-
+		left_disparity, right_disparity = self.session.run([left_output_name, right_output_name], {input_name: input_tensor})
+		
 		return np.squeeze(left_disparity), np.squeeze(right_disparity)
 
 	def updateFps(self):
