@@ -6,7 +6,7 @@ Python scripts form performing stereo depth estimation using the HITNET model in
 
 # Requirements
 
- * **OpenCV**, **imread-from-url**, **onnx** and **onnxruntime**. Also, **pafy** and **youtube-dl** are required for youtube video inference. 
+ * **OpenCV**, **imread-from-url**, **onnx** and **onnxruntime**. Also, **pafy** and **youtube-dl** are required for youtube video inference. The depthai library is also necessary in the case of the OAK-D boards (https://docs.luxonis.com/projects/api/en/latest/install/)
  
 # Installation
 ```
@@ -22,24 +22,30 @@ The Tensorflow pretrained model was taken from the [original repository](https:/
  
 # Examples
 
+ * **Depthai OAK-D series inference on the host**:
+ 
+ ```
+ python depthai_host_depth_estimation.py
+ ```
+
  * **Image inference**:
  
  ```
- python imageDepthEstimation.py 
+ python image_depth_estimation.py 
  ```
  
   * **Video inference**:
  
  ```
- python videoDepthEstimation.py
+ python video_depth_estimation.py
  ```
  
  * **DrivingStereo dataset inference**:
  
  ```
- python drivingStereoTest.py
+ python driving_stereo_test.py
  ```
- 
+  
 
 # Pytorch inference
 For performing the inference in Tensorflow, check my other repository **[HITNET Stereo Depth estimation](https://github.com/ibaiGorordo/HITNET-Stereo-Depth-estimation)**.
@@ -56,5 +62,6 @@ For performing the inference in TFLite, check my other repository **[TFLite HITN
 * PINTO0309's model conversion tool: https://github.com/PINTO0309/openvino2tensorflow
 * DrivingStereo dataset: https://drivingstereo-dataset.github.io/
 * Original paper: https://arxiv.org/abs/2007.12140
+* Depthai Python library: https://github.com/luxonis/depthai-python
  
 
