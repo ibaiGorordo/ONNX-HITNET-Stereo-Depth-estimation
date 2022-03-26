@@ -3,36 +3,40 @@ import cv2
 import depthai as dai
 import numpy as np
 
-from hitnet import HitNet, ModelType, draw_disparity, draw_depth, CameraConfig
+from hitnet import HitNet, ModelType, CameraConfig
 
-# Create pipeline
-pipeline = dai.Pipeline()
+def create_pipeline():
 
-# Define sources and outputs
-monoLeft = pipeline.create(dai.node.MonoCamera)
-monoRight = pipeline.create(dai.node.MonoCamera)
-stereo = pipeline.create(dai.node.StereoDepth)
+    # Create pipeline
+    pipeline = dai.Pipeline()
 
-rect_left = pipeline.create(dai.node.XLinkOut)
-rect_right = pipeline.create(dai.node.XLinkOut)
+    # Define sources and outputs
+    monoLeft = pipeline.create(dai.node.MonoCamera)
+    monoRight = pipeline.create(dai.node.MonoCamera)
+    stereo = pipeline.create(dai.node.StereoDepth)
 
-rect_left.setStreamName("rect_left")
-rect_right.setStreamName("rect_right")
+    rect_left = pipeline.create(dai.node.XLinkOut)
+    rect_right = pipeline.create(dai.node.XLinkOut)
 
-monoLeft.setResolution(dai.MonoCameraProperties.SensorResolution.THE_400_P)
-monoLeft.setBoardSocket(dai.CameraBoardSocket.LEFT)
-monoRight.setResolution(dai.MonoCameraProperties.SensorResolution.THE_400_P)
-monoRight.setBoardSocket(dai.CameraBoardSocket.RIGHT)
+    rect_left.setStreamName("rect_left")
+    rect_right.setStreamName("rect_right")
 
-# StereoDepth
-stereo.setDefaultProfilePreset(dai.node.StereoDepth.PresetMode.HIGH_DENSITY)
+    monoLeft.setResolution(dai.MonoCameraProperties.SensorResolution.THE_400_P)
+    monoLeft.setBoardSocket(dai.CameraBoardSocket.LEFT)
+    monoRight.setResolution(dai.MonoCameraProperties.SensorResolution.THE_400_P)
+    monoRight.setBoardSocket(dai.CameraBoardSocket.RIGHT)
 
-# Linking
-monoLeft.out.link(stereo.left)
-monoRight.out.link(stereo.right)
+    # StereoDepth
+    stereo.setDefaultProfilePreset(dai.node.StereoDepth.PresetMode.HIGH_DENSITY)
 
-stereo.rectifiedLeft.link(rect_left.input)
-stereo.rectifiedRight.link(rect_right.input)
+    # Linking
+    monoLeft.out.link(stereo.left)
+    monoRight.out.link(stereo.right)
+
+    stereo.rectifiedLeft.link(rect_left.input)
+    stereo.rectifiedRight.link(rect_right.input)
+
+    return pipeline
 
 
 # Select model type
@@ -55,7 +59,10 @@ camera_config = CameraConfig(0.075, 0.5*input_width/0.72) # 71.9 deg. FOV
 max_distance = 5
 
 # Initialize model
-hitnet_depth = HitNet(model_path, model_type, camera_config)
+hitnet_depth = HitNet(model_path, model_type, camera_config, max_distance)
+
+# Get Depthai pipeline
+pipeline = create_pipeline()
 
 # Connect to device and start pipeline
 with dai.Device(pipeline) as device:
@@ -76,13 +83,9 @@ with dai.Device(pipeline) as device:
 
         # Estimate the depth
         disparity_map = hitnet_depth(left_rect_img, right_rect_img)
-        depth_map = hitnet_depth.get_depth()
+        color_depth = hitnet_depth.draw_depth()
 
-        color_disparity = draw_disparity(disparity_map)
-        color_depth = draw_depth(depth_map, max_distance)
-
-        color_depth = cv2.resize(color_depth, (left_rect_img.shape[1],left_rect_img.shape[0]))
-        combined_image = np.hstack((left_rect_img,right_rect_img, color_depth))
+        combined_image = np.hstack((left_rect_img, color_depth))
         cv2.imwrite("output.jpg", combined_image)
 
         cv2.imshow("Estimated depth", combined_image)

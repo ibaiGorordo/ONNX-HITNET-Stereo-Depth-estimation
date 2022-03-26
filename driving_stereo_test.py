@@ -1,18 +1,19 @@
 import cv2
-import pafy
 import numpy as np
 import glob
-from hitnet import HitNet, ModelType, draw_disparity, draw_depth, CameraConfig, load_img
+from hitnet import HitNet, ModelType, CameraConfig
 
-out = cv2.VideoWriter('outpy2.avi',cv2.VideoWriter_fourcc('M','J','P','G'), 60, (879*3,400))
+def get_driving_stereo_images(base_path, start_sample=0):
 
-# Get image list
-left_images = glob.glob('DrivingStereo images/left/*.jpg')
-left_images.sort()
-right_images = glob.glob('DrivingStereo images/right/*.jpg')
-right_images.sort()
-depth_images = glob.glob('DrivingStereo images/depth/*.png')
-depth_images.sort()
+	# Get image list
+	left_images = glob.glob(f'{base_path}/left/*.jpg')
+	left_images.sort()
+	right_images = glob.glob(f'{base_path}/right/*.jpg')
+	right_images.sort()
+	depth_images = glob.glob(f'{base_path}/depth/*.png')
+	depth_images.sort()
+
+	return left_images[start_sample:], right_images[start_sample:], depth_images[start_sample:]
 
 # Select model type
 model_type = ModelType.middlebury
@@ -26,31 +27,33 @@ elif model_type == ModelType.flyingthings:
 elif model_type == ModelType.eth3d:
 	model_path = "models/eth3d/saved_model_480x640/model_float32.onnx"
 
-input_width = 640
-camera_config = CameraConfig(0.546, 2000/1920*input_width) # rough estimate from the original calibration
-max_distance = 30
-
 # Initialize model
-hitnet_depth = HitNet(model_path, model_type, camera_config)
+input_width = 640
+camera_config = CameraConfig(0.546, 500/1720*input_width) # rough estimate from the original calibration
+max_distance = 10
+depth_estimator = HitNet(model_path, model_type, camera_config, max_distance)
+
+# Get the driving stereo samples
+driving_stereo_path = "drivingStereo"
+start_sample = 700
+left_images, right_images, depth_images = get_driving_stereo_images(driving_stereo_path, start_sample)
+
+out = cv2.VideoWriter('outpy2.avi',cv2.VideoWriter_fourcc('M','J','P','G'), 20, (879*2,400))
 
 cv2.namedWindow("Estimated depth", cv2.WINDOW_NORMAL)	
-for left_path, right_path, depth_path in zip(left_images[700:], right_images[700:], depth_images[700:]):
+for left_path, right_path, depth_path in zip(left_images, right_images, depth_images):
 
 	# Read frame from the video
 	left_img = cv2.imread(left_path)
 	right_img = cv2.imread(right_path)
-	depth_img = cv2.imread(depth_path, cv2.IMREAD_UNCHANGED).astype(np.float32)/256
-
+	depth_img = cv2.imread(depth_path, cv2.IMREAD_UNCHANGED).astype(np.float32)/1000
+	
 	# Estimate the depth
-	disparity_map = hitnet_depth(left_img, right_img)
-	depth_map = hitnet_depth.get_depth()
+	disparity_map = depth_estimator(left_img, right_img)
 
-	color_disparity = draw_disparity(disparity_map)
-	color_depth = draw_depth(depth_map, max_distance)
-	color_real_depth = draw_depth(depth_img, max_distance)
-
-	color_depth = cv2.resize(color_depth, (left_img.shape[1],left_img.shape[0]))
-	cobined_image = np.hstack((left_img,color_real_depth, color_depth))
+	color_depth = depth_estimator.draw_depth()
+	color_real_depth = depth_estimator.util_draw_depth(depth_img, (left_img.shape[1], left_img.shape[0]), max_distance)
+	cobined_image = np.hstack((left_img, color_real_depth, color_depth))
 
 	out.write(cobined_image)
 	cv2.imshow("Estimated depth", cobined_image)

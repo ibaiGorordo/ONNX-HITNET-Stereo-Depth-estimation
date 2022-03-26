@@ -6,6 +6,13 @@ __pycache__/
 # C extensions
 *.so
 
+# Dataset
+drivingStereo/
+
+# Models
+models/
+!models/.gitkeep
+
 # Distribution / packaging
 .Python
 build/
