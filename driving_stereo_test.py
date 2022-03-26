@@ -51,9 +51,9 @@ for left_path, right_path, depth_path in zip(left_images, right_images, depth_im
 
 	color_depth = depth_estimator.draw_depth()
 	color_real_depth = depth_estimator.util_draw_depth(depth_img, (left_img.shape[1], left_img.shape[0]), max_distance)
-	cobined_image = np.hstack((left_img, color_real_depth, color_depth))
+	combined_image = np.hstack((left_img, color_real_depth, color_depth))
 
-	cv2.imshow("Estimated depth", cobined_image)
+	cv2.imshow("Estimated depth", combined_image)
 
 	# Press key q to stop
 	if cv2.waitKey(1) == ord('q'):
